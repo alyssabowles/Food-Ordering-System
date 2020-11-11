@@ -16,8 +16,6 @@ public class Main {
 
 	public static void main(String[] args) throws IOException {
 		
-		
-		
 		Connection connection = null;
 		String url = "jdbc:mariadb://localhost:3306/foodordering";
 		String user;
@@ -186,8 +184,15 @@ public class Main {
 		}
 	}
 	
-	private static void reviewOrder(Scanner scan, Statement statement) {
-		
+	private static void reviewOrder(Scanner scan, Statement statement) throws IOException, SQLException {
+		int customerID = selectCustomer(scan, statement);
+		ResultSet rs = statement.executeQuery("select purchase_date, price from orders where customer="+customerID);
+		while(rs.next()) {
+			System.out.print("Order Date: " + rs.getString(1));
+			System.out.print("     Order Price: $" + rs.getString(2));
+			System.out.println("");
+		}
+		System.out.println("");
 	}
 	
 	private static void newCustomer(Scanner scan, Statement statement) throws IOException, SQLException {
@@ -198,17 +203,30 @@ public class Main {
 		String address = scan.nextLine();
 		System.out.print("Enter your Phone Number:   ");
 		String phoneNum = scan.nextLine();
+		System.out.println("***** Credit Card Information *****");
+		System.out.print("Credit Card Number:   ");
+		String cardNum = scan.nextLine();
+		System.out.print("CVV:   ");
+		int cvv = scan.nextInt();
+		System.out.println("Expiration date (mm/yy):   ");
+		String expDate = scan.nextLine();
+		
 		
 		// Make the new customerID one above from the largest customerID
         ResultSet rs = statement.executeQuery("select max(customer_id) from customer");
         rs.next();
         int customerID = rs.getInt(1) + 1;
 		
+        // Add customer's credit card information into database
+     	statement.executeUpdate("insert into credit_card(card_number, cvv, exp_date, cust_id) " 
+             	+ "values ('" +cardNum+ "', "+cvv+", '" + expDate +"', " + customerID+")");
+        
 		// Adds new customer into the database
         statement.executeUpdate("insert into customer(customer_id, name, address, phone_number) " 
         		+ "values (" +customerID+ ", '"+name+"', '" + address +"', '" + phoneNum+"')");
         System.out.println();
 		System.out.println("Customer successfully added.");
+		System.out.println();
 		System.out.println("Your Customer ID: " + customerID);
 		System.out.println();
 	}
@@ -338,8 +356,6 @@ public class Main {
         rs = statement.executeQuery("select max(order_id) from orders");
         rs.next();
         int orderID = rs.getInt(1) + 1;
-        
-          
         
 		// Get the credit card number of the customer
 		rs = statement.executeQuery("select card_number from credit_card where cust_id="+customerID);
