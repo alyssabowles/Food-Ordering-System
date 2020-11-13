@@ -122,11 +122,12 @@ public class Main {
 	private static void driverMenu(Scanner scan, Statement statement, String currDate) throws IOException, SQLException {
 		int option = 0;
 		while(option != 4) {
-			System.out.println("***** Customer Menu *****");
+			System.out.println("***** Driver Menu *****");
         	System.out.println("Select one of the following:" );
             System.out.println("[1]  Create new Driver Account");
             System.out.println("[2]  Log hours worked");
-            System.out.println("[3]  Back to previous menu");
+            System.out.println("[3]  Check Delivery Log");
+            System.out.println("[4]  Back to previous menu");
             System.out.print("Enter choice:  ");
             option = scan.nextInt();
             System.out.println();
@@ -138,6 +139,8 @@ public class Main {
             	logHours(scan, statement);
                 break;
             case 3:
+            	deliveryLog(scan, statement);
+            case 4:
             	return;
             default:
                 System.out.println("Please enter a valid choice!");
@@ -208,7 +211,8 @@ public class Main {
 		String cardNum = scan.nextLine();
 		System.out.print("CVV:   ");
 		int cvv = scan.nextInt();
-		System.out.println("Expiration date (mm/yy):   ");
+		scan.nextLine();
+		System.out.print("Expiration date (mm/yy):   ");
 		String expDate = scan.nextLine();
 		
 		
@@ -309,10 +313,30 @@ public class Main {
 		int numHours = scan.nextInt();
 		statement.executeQuery("set @intValue:="+numHours);
 		statement.executeQuery("update driver set hours_worked=hours_worked+"+numHours+" where driver_id="+driverID);
-		
+		ResultSet rs = statement.executeQuery("select hours_worked from driver where driver_id="+driverID);
+		rs.next();
+		int totalHours = rs.getInt(1);
 		System.out.println();
 		System.out.println("Hours successfully logged.");
+		System.out.println("Total hours worked: " + totalHours);
 		System.out.println();
+	}
+	
+	private static void deliveryLog(Scanner scan, Statement statement) throws IOException, SQLException{
+		int driverID = selectDriver(scan, statement);
+		int i = 1;
+		ResultSet rs = statement.executeQuery("select name, address, phone_number, purchase_date from orders, customer "
+				+ "where customer.customer_id=orders.customer and car_num=(select car_num from car where driver_id="+driverID+")");
+		while(rs.next()) {
+			System.out.println("Delivery #"+i);
+			System.out.println("Purchase Date: "+ rs.getString(4));
+			System.out.println("Customer Name: " + rs.getString(1));
+			System.out.println("Customer Address: " + rs.getString(2));
+			System.out.println("Customer Phone Number: "+ rs.getString(3));
+			System.out.println("");
+			i++;
+		}
+		System.out.println("");
 	}
 	
 	private static double createMeal(Scanner scan, Statement statement) throws IOException, SQLException{
@@ -322,13 +346,10 @@ public class Main {
 			System.out.println("Select your items: ");
 	        ArrayList<String> food = new ArrayList<String>();
 	        ResultSet rs = statement.executeQuery("select * from menu_item");
-	        int i=0;
 	        while(rs.next()) {
 	            food.add(rs.getString(1));
 	            System.out.println( " [" + rs.getString(1) + "]" + "\t$" + rs.getString(3) + "\t" + rs.getString(2));
-	            
 	            System.out.println();
-	            i++;
 	        }
 	        System.out.print("Enter choice:  ");
 	        int foodID = scan.nextInt();
